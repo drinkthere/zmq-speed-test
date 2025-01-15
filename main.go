@@ -24,7 +24,10 @@ func main() {
 		fmt.Printf("Usage: %s config_file\n", os.Args[0])
 		os.Exit(1)
 	}
-	utils.RegisterExitSignal(func() {})
+	utils.RegisterExitSignal(func() {
+		logger.Warn("Process exit.")
+		os.Exit(1)
+	})
 
 	// 加载配置文件
 	globalConfig = *config.LoadConfig(os.Args[1])

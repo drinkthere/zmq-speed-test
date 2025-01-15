@@ -37,7 +37,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 			logger.Warn("[SubBestPathChange] Sub Service Listening Exited.")
 		}()
 
-		logger.Info("[SubBestPathChange] Start Best Path Service.")
+		logger.Warn("[SubBestPathChange] Start Best Path Service.")
 		var ctx *zmq.Context
 		var sub *zmq.Socket
 		for {
@@ -63,7 +63,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 				s.isBestPathStopped = false
 			}
 
-			logger.Info("[SubBestPathChange] Start Receiving Data.")
+			logger.Warn("[SubBestPathChange] Start Receiving Data.")
 			msg, err := sub.Recv(0)
 			if err != nil {
 				logger.Error("[SubBestPathChange] Receive Best Path Changed ZMQ Msg Error: %s", err.Error())
@@ -85,7 +85,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 				time.Sleep(time.Second * 1)
 				continue
 			}
-			logger.Info("[SubBestPathChange] Best Path Has Been Changed from %s->%s to %s->%s",
+			logger.Warn("[SubBestPathChange] Best Path Has Been Changed from %s->%s to %s->%s",
 				globalContext.BestPath.SourceIP, globalContext.BestPath.TargetIP,
 				bestPath.SourceIP, bestPath.TargetIP)
 			globalContext.BestPath.SourceIP = bestPath.SourceIP
@@ -101,13 +101,13 @@ func (s *LocalTickerForwardService) StartSubService(cfg *config.Config, globalCo
 			logger.Warn("[LocalTickerForward] Sub Service Listening Exited.")
 		}()
 
-		logger.Info("[LocalTickerForward] Start Local Sub Service.")
+		logger.Warn("[LocalTickerForward] Start Local Sub Service.")
 		var ctx *zmq.Context
 		var sub *zmq.Socket
 		for {
 			select {
 			case <-globalContext.BestPathChangedCh:
-				logger.Info("[LocalTickerForward] Best path changed, closing current connection and restarting.")
+				logger.Warn("[LocalTickerForward] Best path changed, closing current connection and restarting.")
 				sub.Close()
 				ctx.Term()
 				s.isSubStopped = true
@@ -157,7 +157,7 @@ func (s *LocalTickerForwardService) StartSubService(cfg *config.Config, globalCo
 				time.Sleep(time.Second * 1)
 				continue
 			}
-			logger.Info("=stat= %s|%f|%f|%f|%f|%f|%d|%d", ticker.InstID, ticker.BestBid, ticker.BidSz, ticker.BestAsk, ticker.AskSz, ticker.UpdateID, ticker.EventTs)
+			logger.Info("=stat= %s|%f|%f|%f|%f|%d|%d", ticker.InstID, ticker.BestBid, ticker.BidSz, ticker.BestAsk, ticker.AskSz, ticker.UpdateID, ticker.EventTs)
 		}
 	}()
 }
