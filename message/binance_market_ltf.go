@@ -157,7 +157,8 @@ func (s *LocalTickerForwardService) StartSubService(cfg *config.Config, globalCo
 				time.Sleep(time.Second * 1)
 				continue
 			}
-			logger.Info("=stat= %s|%f|%f|%f|%f|%d|%d", ticker.InstID, ticker.BestBid, ticker.BidSz, ticker.BestAsk, ticker.AskSz, ticker.UpdateID, ticker.EventTs)
+			logger.Info("=stat= %s|%f|%f|%f|%f|%d|%d|%d", ticker.InstID, ticker.BestBid, ticker.BidSz,
+				ticker.BestAsk, ticker.AskSz, ticker.UpdateID, ticker.EventTs, time.Now().UnixNano())
 		}
 	}()
 }
