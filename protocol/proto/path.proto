@@ -1,0 +1,6 @@
+syntax = "proto3";
+option go_package = "protocol/pb";
+message BestPath {
+  string sourceIP = 1;
+  string targetIP = 2;
+}
