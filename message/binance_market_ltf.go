@@ -13,8 +13,7 @@ import (
 )
 
 func StartLocalTickerForward(cfg *config.Config, globalContext *context.GlobalContext) {
-	forwardSvc := LocalTickerForwardService{}
-	forwardSvc.Init()
+	forwardSvc := &LocalTickerForwardService{}
 
 	for _, targetPort := range cfg.TargetPorts {
 		forwardSvc.StartSubService(targetPort, globalContext)
@@ -25,15 +24,7 @@ func StartLocalTickerForward(cfg *config.Config, globalContext *context.GlobalCo
 	}
 }
 
-type LocalTickerForwardService struct {
-	isSubStopped      bool
-	isBestPathStopped bool
-}
-
-func (s *LocalTickerForwardService) Init() {
-	s.isSubStopped = true
-	s.isBestPathStopped = true
-}
+type LocalTickerForwardService struct{}
 
 func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, globalContext *context.GlobalContext) {
 	go func() {
@@ -44,8 +35,9 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 		logger.Warn("[SubBestPathChange] Start Best Path Service.")
 		var ctx *zmq.Context
 		var sub *zmq.Socket
+		isBestPathStopped := false
 		for {
-			if s.isBestPathStopped {
+			if isBestPathStopped {
 				ctx, _ = zmq.NewContext()
 				sub, _ = ctx.NewSocket(zmq.SUB)
 				err := sub.Connect(cfg.BestPathChangedIPC)
@@ -64,7 +56,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 					time.Sleep(time.Second * 1)
 					continue
 				}
-				s.isBestPathStopped = false
+				isBestPathStopped = false
 			}
 
 			logger.Warn("[SubBestPathChange] Start Receiving Data.")
@@ -73,7 +65,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 				logger.Error("[SubBestPathChange] Receive Best Path Changed ZMQ Msg Error: %s", err.Error())
 				sub.Close()
 				ctx.Term()
-				s.isBestPathStopped = true
+				isBestPathStopped = true
 				time.Sleep(time.Second * 1)
 				continue
 			}
@@ -85,7 +77,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 				logger.Error("[SubBestPathChange] Parse Best Path Changed ZMQ Msg %s Error: %s", msg, err.Error())
 				sub.Close()
 				ctx.Term()
-				s.isBestPathStopped = true
+				isBestPathStopped = true
 				time.Sleep(time.Second * 1)
 				continue
 			}
@@ -110,17 +102,18 @@ func (s *LocalTickerForwardService) StartSubService(targetPort string, globalCon
 		logger.Warn("[LocalTickerForward] Start Local Sub Service.")
 		var ctx *zmq.Context
 		var sub *zmq.Socket
+		isSubStopped := false
 		for {
 			select {
 			case <-bestPathCh:
 				logger.Warn("[LocalTickerForward] Best path changed, closing current connection and restarting.")
 				sub.Close()
 				ctx.Term()
-				s.isSubStopped = true
+				isSubStopped = true
 				time.Sleep(time.Second * 1)
 				continue
 			default:
-				if s.isSubStopped {
+				if isSubStopped {
 					ctx, _ = zmq.NewContext()
 					sub, _ = ctx.NewSocket(zmq.SUB)
 					target := globalContext.BestPath.TargetIP + ":" + targetPort
@@ -140,7 +133,7 @@ func (s *LocalTickerForwardService) StartSubService(targetPort string, globalCon
 						time.Sleep(time.Second * 1)
 						continue
 					}
-					s.isSubStopped = false
+					isSubStopped = false
 				}
 			}
 			msg, err := sub.Recv(0)
@@ -148,7 +141,7 @@ func (s *LocalTickerForwardService) StartSubService(targetPort string, globalCon
 				logger.Error("[LocalTickerForward] Receive Remote ZMQ Msg Error: %s", err.Error())
 				sub.Close()
 				ctx.Term()
-				s.isSubStopped = true
+				isSubStopped = true
 				time.Sleep(time.Second * 1)
 				continue
 			}
@@ -159,7 +152,7 @@ func (s *LocalTickerForwardService) StartSubService(targetPort string, globalCon
 				logger.Error("[BSTickerForward] Parse ZMQ Msg Error: %s", err.Error())
 				sub.Close()
 				ctx.Term()
-				s.isSubStopped = true
+				isSubStopped = true
 				time.Sleep(time.Second * 1)
 				continue
 			}
