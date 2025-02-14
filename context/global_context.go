@@ -11,6 +11,7 @@ type GlobalContext struct {
 }
 
 func (context *GlobalContext) Init(globalConfig *config.Config) {
+	context.BestPathBroadcast = container.NewBroadcastChannel()
 	context.BestPath = &container.BestPath{}
 	context.BestPath.Init(globalConfig.InitSourceIP, globalConfig.InitTargetIP)
 }
