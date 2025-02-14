@@ -6,13 +6,11 @@ import (
 )
 
 type GlobalContext struct {
-	BestPathChangedCh chan struct{}
+	BestPathBroadcast *container.BroadcastChannel
 	BestPath          *container.BestPath
 }
 
 func (context *GlobalContext) Init(globalConfig *config.Config) {
-	context.BestPathChangedCh = make(chan struct{})
-
 	context.BestPath = &container.BestPath{}
 	context.BestPath.Init(globalConfig.InitSourceIP, globalConfig.InitTargetIP)
 }

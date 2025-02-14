@@ -15,7 +15,11 @@ import (
 func StartLocalTickerForward(cfg *config.Config, globalContext *context.GlobalContext) {
 	forwardSvc := LocalTickerForwardService{}
 	forwardSvc.Init()
-	forwardSvc.StartSubService(cfg, globalContext)
+
+	for _, targetPort := range cfg.TargetPorts {
+		forwardSvc.StartSubService(targetPort, globalContext)
+	}
+
 	if cfg.UseBestPath {
 		forwardSvc.StartSubBestPathChange(cfg, globalContext)
 	}
@@ -90,14 +94,16 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 				bestPath.SourceIP, bestPath.TargetIP)
 			globalContext.BestPath.SourceIP = bestPath.SourceIP
 			globalContext.BestPath.TargetIP = bestPath.TargetIP
-			globalContext.BestPathChangedCh <- struct{}{}
+			globalContext.BestPathBroadcast.Broadcast()
 		}
 	}()
 }
 
-func (s *LocalTickerForwardService) StartSubService(cfg *config.Config, globalContext *context.GlobalContext) {
+func (s *LocalTickerForwardService) StartSubService(targetPort string, globalContext *context.GlobalContext) {
 	go func() {
+		bestPathCh := globalContext.BestPathBroadcast.Subscribe()
 		defer func() {
+			globalContext.BestPathBroadcast.Unsubscribe(bestPathCh)
 			logger.Warn("[LocalTickerForward] Sub Service Listening Exited.")
 		}()
 
@@ -106,7 +112,7 @@ func (s *LocalTickerForwardService) StartSubService(cfg *config.Config, globalCo
 		var sub *zmq.Socket
 		for {
 			select {
-			case <-globalContext.BestPathChangedCh:
+			case <-bestPathCh:
 				logger.Warn("[LocalTickerForward] Best path changed, closing current connection and restarting.")
 				sub.Close()
 				ctx.Term()
@@ -117,7 +123,7 @@ func (s *LocalTickerForwardService) StartSubService(cfg *config.Config, globalCo
 				if s.isSubStopped {
 					ctx, _ = zmq.NewContext()
 					sub, _ = ctx.NewSocket(zmq.SUB)
-					target := globalContext.BestPath.TargetIP + ":" + cfg.TargetPort
+					target := globalContext.BestPath.TargetIP + ":" + targetPort
 					err := sub.Connect("tcp://" + globalContext.BestPath.SourceIP + ":0;" + target)
 
 					if err != nil {
