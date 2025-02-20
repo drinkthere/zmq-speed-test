@@ -1,15 +1,17 @@
 {
   "Exchange": "Binance",
   "LogLevel": "INFO",
-  "LogPath": "./logs/local-bn-futures-btceth.log",
+  "LogPath": "./logs/cpp.log",
   "BinanceAPIKey": "",
   "BinanceSecretKey": "",
   "LocalBinanceIP": "",
-  "LocalForward": true,
-  "InitSourceIP": "192.168.14.40",
-  "InitTargetIP": "172.31.16.158",
-  "TargetPort": "21001",
+  "LocalForward": false,
+  "InitSourceIP": "127.0.0.1",
+  "InitTargetIP": "127.0.0.1",
+  "TargetPorts": [
+    "20001"
+  ],
   "LocalForwardIPC": "tcp://*:21001",
-  "UseBestPath": true,
+  "UseBestPath": false,
   "BestPathChangedIPC": "tcp://127.0.0.1:60000"
 }
