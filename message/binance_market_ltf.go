@@ -16,7 +16,7 @@ func StartLocalTickerForward(cfg *config.Config, globalContext *context.GlobalCo
 	forwardSvc := &LocalTickerForwardService{}
 
 	for _, targetPort := range cfg.TargetPorts {
-		forwardSvc.StartSubService(targetPort, globalContext)
+		forwardSvc.StartSubService(cfg.UseBestPath, targetPort, globalContext)
 	}
 
 	if cfg.UseBestPath {
@@ -35,7 +35,7 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 		logger.Warn("[SubBestPathChange] Start Best Path Service.")
 		var ctx *zmq.Context
 		var sub *zmq.Socket
-		isBestPathStopped := false
+		isBestPathStopped := true
 		for {
 			if isBestPathStopped {
 				ctx, _ = zmq.NewContext()
@@ -91,18 +91,27 @@ func (s *LocalTickerForwardService) StartSubBestPathChange(cfg *config.Config, g
 	}()
 }
 
-func (s *LocalTickerForwardService) StartSubService(targetPort string, globalContext *context.GlobalContext) {
+func (s *LocalTickerForwardService) StartSubService(useBestPath bool, targetPort string, globalContext *context.GlobalContext) {
 	go func() {
-		bestPathCh := globalContext.BestPathBroadcast.Subscribe()
 		defer func() {
-			globalContext.BestPathBroadcast.Unsubscribe(bestPathCh)
 			logger.Warn("[LocalTickerForward] Sub Service Listening Exited.")
 		}()
+
+		var bestPathCh chan struct{}
+		if useBestPath {
+			bestPathCh := globalContext.BestPathBroadcast.Subscribe()
+			defer func() {
+				if bestPathCh != nil {
+					globalContext.BestPathBroadcast.Unsubscribe(bestPathCh)
+					logger.Info("[LocalTickerForward] Unsubscribed from best path changes")
+				}
+			}()
+		}
 
 		logger.Warn("[LocalTickerForward] Start Local Sub Service.")
 		var ctx *zmq.Context
 		var sub *zmq.Socket
-		isSubStopped := false
+		isSubStopped := true
 		for {
 			select {
 			case <-bestPathCh:
@@ -117,6 +126,7 @@ func (s *LocalTickerForwardService) StartSubService(targetPort string, globalCon
 					ctx, _ = zmq.NewContext()
 					sub, _ = ctx.NewSocket(zmq.SUB)
 					target := globalContext.BestPath.TargetIP + ":" + targetPort
+					logger.Info("%s", target)
 					err := sub.Connect("tcp://" + globalContext.BestPath.SourceIP + ":0;" + target)
 
 					if err != nil {
