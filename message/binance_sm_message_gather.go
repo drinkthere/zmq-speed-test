@@ -58,8 +58,10 @@ func gatherBnSmTicker(
 			if idx > previousCoinUpdateIdx[i] {
 				bt := md.Data[i][idx%container.CoinDataCount]
 				instID := bytesToString(md.CoinName[i][:])
+				previousCoinUpdateIdx[i] = idx
 				logger.Info("=stat= %s|%f|%f|%f|%f|%d|%d|%d", instID, bt.BuyPrice, bt.BuyNum,
 					bt.SellPrice, bt.SellNum, bt.UpdateID, bt.Ets, time.Now().UnixNano())
+
 			}
 		}
 		mutex.RUnlock()
